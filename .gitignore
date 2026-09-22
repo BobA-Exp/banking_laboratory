@@ -16,3 +16,6 @@ wheels/
 # Virtual environments
 .env
 .venv
+
+# Requirements
+requirements/
