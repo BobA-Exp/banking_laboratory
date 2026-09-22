@@ -25,8 +25,8 @@ class BankAccount:
     ):
         self.account_number = account_number
         self.currency = currency
-        self._account_type = _account_type    #! Protected, so one prepended nderscore
-        self.__balance = 0.0                  #! Private, so double prepended underscore
+        self._account_type = _account_type    # Protected, so one prepended nderscore
+        self.__balance = 0.0                  # Private, so double prepended underscore
 
         if (
             self._account_type == "savings"
