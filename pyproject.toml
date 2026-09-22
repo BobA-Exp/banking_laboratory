@@ -1,0 +1,11 @@
+[project]
+name = "banking-laboratory"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "logging>=0.4.9.6",
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
+]
