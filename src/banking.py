@@ -26,8 +26,8 @@ class BankAccount:
     ):
         self.account_number = account_number
         self.currency = currency
-        self._account_type = _account_type  # Protected, so one prepended nderscore
-        self.__balance = 0.0  # Private, so double prepended underscore
+        self._account_type = _account_type                    # Protected, so one prepended underscore
+        self.__balance = 0.0                                  # Private, so double prepended underscore
 
         if (
             self._account_type == "savings"
@@ -134,10 +134,10 @@ class Customer:
             logger.error("Customer must be at least 18 years old.")
             raise ValueError("Customer must be at least 18 years old.")
 
-        self._name = name
-        self._birth_date = parsed_birth_date
-        self._user_id = self._next_user_id()
-        self.__accounts = []
+        self._name = name                                    # Protected, so one prepended underscore
+        self._birth_date = parsed_birth_date                 # Protected, so one prepended underscore
+        self._user_id = self._next_user_id()                 # Protected, so one prepended underscore
+        self.__accounts = []                                 # Private, so double prepended underscore
 
     @staticmethod
     def _parse_birth_date(birth_date):
