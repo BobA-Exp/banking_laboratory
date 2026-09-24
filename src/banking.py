@@ -1,4 +1,5 @@
 import logging
+from datetime import date, datetime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -124,6 +125,108 @@ class BankAccount:
         )
 
 
+class Customer:
+    user_count = 0
+
+    def __init__(self, name, birth_date):
+        parsed_birth_date = self._parse_birth_date(birth_date)
+        if not self.is_adult(parsed_birth_date):
+            logger.error("Customer must be at least 18 years old.")
+            raise ValueError("Customer must be at least 18 years old.")
+
+        self._name = name
+        self._birth_date = parsed_birth_date
+        self._user_id = self._next_user_id()
+        self.__accounts = []
+
+    @staticmethod
+    def _parse_birth_date(birth_date):
+        if isinstance(birth_date, datetime):
+            return birth_date.date()
+        if isinstance(birth_date, date):
+            return birth_date
+        if isinstance(birth_date, str):
+            try:
+                return date.fromisoformat(birth_date)
+            except ValueError:
+                logger.error("Invalid birth date format: %s", birth_date)
+                raise ValueError("Birth date must be YYYY-MM-DD.") from None
+
+        logger.error("Invalid birth date type: %s", type(birth_date).__name__)
+        raise ValueError("Birth date must be a date or YYYY-MM-DD string.")
+
+    @staticmethod
+    def is_adult(birth_date):
+        today = datetime.now().astimezone().date()
+        age = (
+            today.year
+            - birth_date.year
+            - ((today.month, today.day) < (birth_date.month, birth_date.day))
+        )
+        return age >= 18
+
+    @classmethod
+    def _next_user_id(cls):
+        cls.user_count += 1
+        return cls.user_count
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def birth_date(self):
+        return self._birth_date
+
+    @property
+    def user_id(self):
+        return self._user_id
+
+    @property
+    def accounts(self):
+        return list(self.__accounts)
+
+    def get_name(self):
+        return self.name
+
+    def get_birth_date(self):
+        return self.birth_date
+
+    def get_user_id(self):
+        return self._user_id
+
+    def get_accounts(self):
+        return list(self.__accounts)
+
+    def add_account(self, account):
+        if not BankAccount.is_valid_account_number(account.get_account_number()):
+            logger.error("Invalid account number: %s", account.get_account_number())
+            return
+
+        self.__accounts.append(account)
+
+    def get_total_balance(self):
+        return sum(account.get_balance() for account in self.__accounts)
+
+    def transfer(self, source_account, target_account, amount):
+        if source_account is target_account:
+            logger.error("Source and target accounts must be different.")
+            return
+
+        if (
+            source_account not in self.__accounts
+            or target_account not in self.__accounts
+        ):
+            logger.error("Both accounts must belong to this customer.")
+            return
+
+        try:
+            source_account.withdraw(amount)
+            target_account.deposit(amount)
+        except (InsufficientFundsError, ValueError) as exc:
+            logger.error("Transfer failed: %s", exc)
+
+
 if __name__ == "__main__":
     account = BankAccount("1234567890", initial_balance=500.0)
     account.deposit(50.0)
@@ -132,3 +235,10 @@ if __name__ == "__main__":
 
     savings = BankAccount.create_savings("0987654321", initial_balance=200.0)
     print(savings.get_balance())
+
+    customer = Customer("Ada Lovelace", "1990-01-15")
+    customer.add_account(account)
+    customer.add_account(savings)
+    print(customer.get_total_balance())
+    customer.transfer(account, savings, 50.0)
+    print(customer.get_total_balance())
