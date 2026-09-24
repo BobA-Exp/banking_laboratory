@@ -227,18 +227,248 @@ class Customer:
             logger.error("Transfer failed: %s", exc)
 
 
-if __name__ == "__main__":
-    account = BankAccount("1234567890", initial_balance=500.0)
-    account.deposit(50.0)
-    account.withdraw(100.0)
-    account.convert_currency("CRC", 520.0)
+def _find_customer(customers, user_id):
+    for customer in customers:
+        if customer.get_user_id() == user_id:
+            return customer
+    return None
 
-    savings = BankAccount.create_savings("0987654321", initial_balance=200.0)
-    print(savings.get_balance())
 
-    customer = Customer("Ada Lovelace", "1990-01-15")
+def _find_account(customer, account_number):
+    for account in customer.get_accounts():
+        if account.get_account_number() == account_number:
+            return account
+    return None
+
+
+def _prompt_int(message):
+    try:
+        return int(input(message))
+    except ValueError:
+        print("Please enter a valid integer.")
+        return None
+
+
+def _prompt_float(message):
+    try:
+        return float(input(message))
+    except ValueError:
+        print("Please enter a valid number.")
+        return None
+
+
+def _add_customer(customers):
+    name = input("Customer name: ").strip()
+    birth_date = input("Birth date (YYYY-MM-DD): ").strip()
+    try:
+        customer = Customer(name, birth_date)
+    except ValueError as exc:
+        print(f"Could not add customer: {exc}")
+        return
+
+    customers.append(customer)
+    print(f"Customer added. User ID: {customer.get_user_id()}")
+
+
+def _add_account(customers):
+    user_id = _prompt_int("Customer user ID: ")
+    if user_id is None:
+        return
+
+    customer = _find_customer(customers, user_id)
+    if customer is None:
+        print(f"No customer found with user ID {user_id}.")
+        return
+
+    account_type = input("Account type (checking/savings): ").strip().lower()
+    account_number = input("Account number (10 digits): ").strip()
+    currency = input("Currency [USD]: ").strip() or "USD"
+    initial_balance = _prompt_float("Initial balance: ")
+    if initial_balance is None:
+        return
+
+    try:
+        if account_type == "savings":
+            account = BankAccount.create_savings(
+                account_number,
+                currency,
+                initial_balance,
+            )
+        elif account_type == "checking":
+            account = BankAccount(
+                account_number,
+                currency,
+                "checking",
+                initial_balance,
+            )
+        else:
+            print("Account type must be checking or savings.")
+            return
+    except ValueError as exc:
+        print(f"Could not create account: {exc}")
+        return
+
     customer.add_account(account)
-    customer.add_account(savings)
-    print(customer.get_total_balance())
-    customer.transfer(account, savings, 50.0)
-    print(customer.get_total_balance())
+    if account in customer.get_accounts():
+        print(f"Account {account.get_account_number()} added to user {user_id}.")
+    else:
+        print("Account was not added. Check the account number.")
+
+
+def _select_customer(customers):
+    user_id = _prompt_int("Customer user ID: ")
+    if user_id is None:
+        return None
+
+    customer = _find_customer(customers, user_id)
+    if customer is None:
+        print(f"No customer found with user ID {user_id}.")
+    return customer
+
+
+def _select_account(customer, label="Account number"):
+    account_number = input(f"{label}: ").strip()
+    account = _find_account(customer, account_number)
+    if account is None:
+        print(f"No account found with number {account_number}.")
+    return account
+
+
+def _handle_deposit(customers):
+    customer = _select_customer(customers)
+    if customer is None:
+        return
+
+    account = _select_account(customer)
+    if account is None:
+        return
+
+    amount = _prompt_float("Amount: ")
+    if amount is None:
+        return
+
+    try:
+        account.deposit(amount)
+    except ValueError as exc:
+        print(f"Deposit failed: {exc}")
+
+
+def _handle_withdraw(customers):
+    customer = _select_customer(customers)
+    if customer is None:
+        return
+
+    account = _select_account(customer)
+    if account is None:
+        return
+
+    amount = _prompt_float("Amount: ")
+    if amount is None:
+        return
+
+    try:
+        account.withdraw(amount)
+    except (ValueError, InsufficientFundsError) as exc:
+        print(f"Withdrawal failed: {exc}")
+
+
+def _handle_convert(customers):
+    customer = _select_customer(customers)
+    if customer is None:
+        return
+
+    account = _select_account(customer)
+    if account is None:
+        return
+
+    target_currency = input("Target currency: ").strip()
+    exchange_rate = _prompt_float("Exchange rate: ")
+    if exchange_rate is None:
+        return
+
+    try:
+        account.convert_currency(target_currency, exchange_rate)
+    except ValueError as exc:
+        print(f"Conversion failed: {exc}")
+
+
+def _handle_transfer(customers):
+    customer = _select_customer(customers)
+    if customer is None:
+        return
+
+    source_account = _select_account(customer, "Source account number")
+    if source_account is None:
+        return
+
+    target_account = _select_account(customer, "Target account number")
+    if target_account is None:
+        return
+
+    amount = _prompt_float("Amount: ")
+    if amount is None:
+        return
+
+    customer.transfer(source_account, target_account, amount)
+
+
+def _handle_total_balance(customers):
+    customer = _select_customer(customers)
+    if customer is None:
+        return
+
+    print(f"Total balance: {customer.get_total_balance():.2f}")
+
+
+def _transactions_menu(customers):
+    while True:
+        print("\nTransactions")
+        print("1. Deposit")
+        print("2. Withdraw")
+        print("3. Convert currency")
+        print("4. Transfer")
+        print("5. Show total balance")
+        print("6. Back")
+        choice = input("Select an option: ").strip()
+
+        if choice == "1":
+            _handle_deposit(customers)
+        elif choice == "2":
+            _handle_withdraw(customers)
+        elif choice == "3":
+            _handle_convert(customers)
+        elif choice == "4":
+            _handle_transfer(customers)
+        elif choice == "5":
+            _handle_total_balance(customers)
+        elif choice == "6":
+            return
+        else:
+            print("Invalid option.")
+
+
+def menu():
+    customers = []
+    while True:
+        print("\nBanking Laboratory")
+        print("1. Add customer")
+        print("2. Add bank account")
+        print("3. Transactions")
+        print("4. Exit")
+        choice = input("Select an option: ").strip()
+
+        if choice == "1":
+            _add_customer(customers)
+        elif choice == "2":
+            _add_account(customers)
+        elif choice == "3":
+            _transactions_menu(customers)
+        elif choice == "4":
+            print("Goodbye.")
+            return
+        else:
+            print("Invalid option.")
+
+
+if __name__ == "__main__":
+    menu()
